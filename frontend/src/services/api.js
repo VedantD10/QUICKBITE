@@ -27,10 +27,19 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const data = await response.json().catch(() => ({ success: false, message: 'Invalid server response format' }));
+    const contentType = response.headers.get('content-type') || '';
+
+    let data;
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      console.error(`Non-JSON response from ${endpoint} (Status ${response.status}):`, text.slice(0, 200));
+      data = { success: false, message: `Server HTTP Error ${response.status}` };
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || data.error || `Server returned error status ${response.status}`);
+      throw new Error(data.message || data.error || `Server HTTP Error ${response.status}`);
     }
 
     return data;

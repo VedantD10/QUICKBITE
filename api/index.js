@@ -25,8 +25,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
-app.use('/api', apiRoutes);
-
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'HEALTHY',
@@ -36,5 +35,9 @@ app.get('/health', (req, res) => {
     dishesCount: db.getTable('menu_items').length
   });
 });
+
+// Mount routes on BOTH /api and / to handle all Vercel rewrite paths
+app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 module.exports = app;
