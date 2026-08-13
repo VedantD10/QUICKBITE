@@ -7,6 +7,18 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
   const { user, quickLogin, logout } = useAuth();
   const { notifications, clearNotifications } = useSocket();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [switchingRole, setSwitchingRole] = useState(null);
+
+  const handleRoleSwitch = async (roleKey) => {
+    setSwitchingRole(roleKey);
+    try {
+      await quickLogin(roleKey);
+    } catch (err) {
+      console.error('Role switch error:', err);
+    } finally {
+      setSwitchingRole(null);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-amber-200/60 shadow-sm transition-all">
@@ -18,17 +30,21 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           {Object.keys(DEMO_USERS).map(roleKey => (
             <button
+              type="button"
               key={roleKey}
-              onClick={() => quickLogin(roleKey)}
-              className={`px-3 py-0.5 rounded-full text-[11px] font-bold transition-all border ${
+              disabled={switchingRole !== null}
+              onClick={() => handleRoleSwitch(roleKey)}
+              className={`px-3 py-0.5 rounded-full text-[11px] font-bold transition-all border cursor-pointer ${
                 user?.role === roleKey
                   ? 'bg-orange-600 text-white border-orange-500 shadow-sm'
                   : 'bg-white text-slate-700 border-amber-300/80 hover:bg-orange-50 hover:text-orange-600'
               }`}
             >
-              {roleKey === 'CUSTOMER' ? 'Customer' :
-               roleKey === 'RESTAURANT' ? 'Restaurant' :
-               roleKey === 'DELIVERY' ? 'Rider' : 'Admin'}
+              {switchingRole === roleKey ? '...' : (
+                roleKey === 'CUSTOMER' ? 'Customer' :
+                roleKey === 'RESTAURANT' ? 'Restaurant' :
+                roleKey === 'DELIVERY' ? 'Rider' : 'Admin'
+              )}
             </button>
           ))}
         </div>
@@ -54,6 +70,7 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
           {/* NOTIFICATION BELL ICON BUTTON */}
           <div className="relative">
             <button
+              type="button"
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               className="p-2.5 rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-all relative"
               title="Notifications"
@@ -74,6 +91,7 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
                   <div className="flex items-center gap-2">
                     {notifications.length > 0 && (
                       <button
+                        type="button"
                         onClick={clearNotifications}
                         className="text-[11px] font-bold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1"
                         title="Clear all notifications"
@@ -82,7 +100,7 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
                         <span>Clear All</span>
                       </button>
                     )}
-                    <button onClick={() => setIsNotifOpen(false)} className="text-slate-400 hover:text-slate-600">
+                    <button type="button" onClick={() => setIsNotifOpen(false)} className="text-slate-400 hover:text-slate-600">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -106,6 +124,7 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
           {user?.role === 'CUSTOMER' && (
             <>
               <button
+                type="button"
                 onClick={onOpenOrders}
                 className="px-3.5 py-2 rounded-2xl text-xs font-bold bg-slate-100 text-slate-800 hover:bg-orange-50 hover:text-orange-600 transition-all border border-slate-200"
               >
@@ -113,6 +132,7 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
               </button>
 
               <button
+                type="button"
                 onClick={onOpenCart}
                 className="relative p-2.5 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-bold shadow-md shadow-orange-500/20 transition-all flex items-center gap-2"
               >
@@ -139,6 +159,7 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
                 <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">{user.role}</div>
               </div>
               <button
+                type="button"
                 onClick={logout}
                 title="Sign Out"
                 className="p-2 rounded-2xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
@@ -148,6 +169,7 @@ export const Navbar = ({ cartCount, onOpenCart, onOpenOrders, onOpenAuth }) => {
             </div>
           ) : (
             <button
+              type="button"
               onClick={onOpenAuth}
               className="px-4 py-2 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-md shadow-orange-500/20 flex items-center gap-2"
             >
