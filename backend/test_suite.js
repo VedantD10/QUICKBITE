@@ -59,11 +59,13 @@ async function runEdgeCaseSuite() {
   const ownerToken = ownerAuth.data.token;
   const deliveryToken = deliveryAuth.data.token;
 
+  const targetItemId = 'item_rest_01_1';
+
   // TEST 1: Cancel before preparation
   console.log('\n🔹 TEST 1: Customer cancels order BEFORE preparation');
   const order1 = await post('/orders', {
     restaurantId: 'rest_01',
-    items: [{ menuItemId: 'item_02', quantity: 1 }]
+    items: [{ menuItemId: targetItemId, quantity: 1 }]
   }, customerToken);
 
   const order1Obj = order1.data.data || order1.data;
@@ -82,7 +84,7 @@ async function runEdgeCaseSuite() {
   console.log('\n🔹 TEST 2: Customer cancels order AFTER preparation begins');
   const order2 = await post('/orders', {
     restaurantId: 'rest_01',
-    items: [{ menuItemId: 'item_02', quantity: 1 }]
+    items: [{ menuItemId: targetItemId, quantity: 1 }]
   }, customerToken);
 
   // Kitchen accepts and starts cooking
@@ -97,11 +99,11 @@ async function runEdgeCaseSuite() {
 
   // TEST 3: Simultaneous order of last item stock
   console.log('\n🔹 TEST 3: Concurrent ordering of last stock item (Stock = 1)');
-  // Reset item_02 stock to 1 for concurrency test
-  await patch('/menu/items/item_02', { stock_quantity: 1 }, ownerToken);
+  // Reset stock to 1 for concurrency test
+  await patch(`/menu/items/${targetItemId}`, { stock_quantity: 1 }, ownerToken);
 
-  const promiseA = post('/orders', { restaurantId: 'rest_01', items: [{ menuItemId: 'item_02', quantity: 1 }] }, customerToken);
-  const promiseB = post('/orders', { restaurantId: 'rest_01', items: [{ menuItemId: 'item_02', quantity: 1 }] }, customerToken);
+  const promiseA = post('/orders', { restaurantId: 'rest_01', items: [{ menuItemId: targetItemId, quantity: 1 }] }, customerToken);
+  const promiseB = post('/orders', { restaurantId: 'rest_01', items: [{ menuItemId: targetItemId, quantity: 1 }] }, customerToken);
 
   const [resA, resB] = await Promise.all([promiseA, promiseB]);
   console.log(`Order A: HTTP ${resA.status} (${resA.data.success ? 'SUCCESS' : resA.data.message})`);
@@ -112,7 +114,7 @@ async function runEdgeCaseSuite() {
   // TEST 4: Restaurant unavailable
   console.log('\n🔹 TEST 4: Restaurant toggled to TEMPORARILY_UNAVAILABLE');
   await patch('/restaurants/rest_01/status', { status: 'TEMPORARILY_UNAVAILABLE' }, ownerToken);
-  const order4 = await post('/orders', { restaurantId: 'rest_01', items: [{ menuItemId: 'item_02', quantity: 1 }] }, customerToken);
+  const order4 = await post('/orders', { restaurantId: 'rest_01', items: [{ menuItemId: targetItemId, quantity: 1 }] }, customerToken);
   console.log(`Result: HTTP ${order4.status} — ${order4.data.message}`);
   console.assert(order4.status === 400, 'Test 4 Failed!');
   // Restore restaurant
