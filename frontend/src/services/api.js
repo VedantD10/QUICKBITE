@@ -1,4 +1,13 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.startsWith('192.168.')) {
+    return 'http://localhost:5000/api';
+  }
+  return '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('qb_token');
@@ -16,14 +25,19 @@ async function request(endpoint, options = {}) {
     headers
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-  const data = await response.json().catch(() => ({ success: false, message: 'Server communication error' }));
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    const data = await response.json().catch(() => ({ success: false, message: 'Invalid server response format' }));
 
-  if (!response.ok) {
-    throw new Error(data.message || data.error || `HTTP error ${response.status}`);
+    if (!response.ok) {
+      throw new Error(data.message || data.error || `Server returned error status ${response.status}`);
+    }
+
+    return data;
+  } catch (err) {
+    console.error(`API Error on ${endpoint}:`, err);
+    throw err;
   }
-
-  return data;
 }
 
 export const api = {
