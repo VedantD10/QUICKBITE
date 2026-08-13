@@ -10,24 +10,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-let isSeeded = false;
-
-// Middleware to ensure database is seeded on Vercel cold starts before handling requests
-app.use((req, res, next) => {
-  if (!isSeeded || db.getTable('restaurants').length === 0) {
-    seedData()
-      .then(() => {
-        isSeeded = true;
-        next();
-      })
-      .catch((err) => {
-        console.error('Vercel cold start seed error:', err);
-        next();
-      });
-  } else {
-    next();
+// Auto-seed in-memory database synchronously at module load time for instant cold-start readiness
+if (db.getTable('restaurants').length === 0) {
+  try {
+    seedData();
+  } catch (err) {
+    console.error('Database seeding error:', err);
   }
-});
+}
 
 // Health check endpoint (Requirements 9 & 10)
 app.get('/health', (req, res) => {
