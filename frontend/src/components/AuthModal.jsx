@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth, DEMO_USERS } from '../context/AuthContext';
-import { X, Lock, Mail, User, ShieldCheck, ArrowRight, UtensilsCrossed } from 'lucide-react';
+import { X, Lock, Mail, User, ArrowRight, UtensilsCrossed } from 'lucide-react';
+import { api } from '../services/api';
 
 export const AuthModal = ({ isOpen, onClose }) => {
   const { login, quickLogin } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('customer@quickbite.com');
+  const [password, setPassword] = useState('password123');
   const [name, setName] = useState('');
   const [role, setRole] = useState('CUSTOMER');
   const [error, setError] = useState(null);
@@ -20,15 +21,10 @@ export const AuthModal = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       if (isRegister) {
-        // Register flow
-        const res = await fetch('http://localhost:5000/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, role })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Registration failed');
-        await login(email, password);
+        const res = await api.register({ name, email, password, role });
+        if (res.success) {
+          await login(email, password);
+        }
       } else {
         await login(email, password);
       }
@@ -41,6 +37,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
   };
 
   const handleDemoSelect = async (roleKey) => {
+    setError(null);
     setLoading(true);
     try {
       await quickLogin(roleKey);
@@ -66,7 +63,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
               <p className="text-xs text-amber-100">{isRegister ? 'Sign up for instant food ordering' : 'Log in to continue to your dashboard'}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white">
+          <button type="button" onClick={onClose} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -77,6 +74,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(DEMO_USERS).map(([roleKey, info]) => (
               <button
+                type="button"
                 key={roleKey}
                 onClick={() => handleDemoSelect(roleKey)}
                 className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-orange-500 text-left transition-all shadow-sm hover:shadow"
