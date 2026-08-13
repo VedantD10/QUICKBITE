@@ -34,4 +34,6 @@ app.get('/health', (req, res) => {
 app.use('/api', apiRoutes);
 app.use('/', apiRoutes);
 
-module.exports = app;
+module.exports = (req, res) => {
+  return app(req, res);
+};
