@@ -25,7 +25,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Health check endpoint
+// Health check endpoint (Requirements 9 & 10)
 app.get('/health', (req, res) => {
   res.json({
     status: 'HEALTHY',

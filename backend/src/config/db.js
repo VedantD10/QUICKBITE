@@ -1,16 +1,31 @@
 const fs = require('fs');
 const path = require('path');
 
+// Environment check for Vercel / serverless runtime
+const isVercel = Boolean(
+  process.env.VERCEL ||
+  process.env.VERCEL_ENV ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT
+);
+
 const dataDir = path.join(__dirname, '../../data');
 const dbFilePath = path.join(dataDir, 'db.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Ensure data directory exists ONLY for local disk persistence
+if (!isVercel) {
+  try {
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+  } catch (err) {
+    console.warn('Data directory creation skipped (read-only filesystem detected):', err.message);
+  }
 }
 
 class DatabaseService {
   constructor() {
+    this.isServerless = isVercel;
     this.data = {
       users: [],
       restaurants: [],
@@ -31,21 +46,30 @@ class DatabaseService {
   }
 
   load() {
-    if (fs.existsSync(dbFilePath)) {
-      try {
+    // In serverless / Vercel mode, run purely in-memory
+    if (this.isServerless) return;
+
+    try {
+      if (fs.existsSync(dbFilePath)) {
         const raw = fs.readFileSync(dbFilePath, 'utf8');
         this.data = JSON.parse(raw);
-      } catch (err) {
-        console.error('Error loading db.json, initializing fresh database', err);
+      } else {
         this.save();
       }
-    } else {
-      this.save();
+    } catch (err) {
+      console.warn('Warning: Could not load db.json from disk, fallback to in-memory mode:', err.message);
     }
   }
 
   save() {
-    fs.writeFileSync(dbFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+    // No-op on Vercel / serverless environments to prevent EROFS filesystem crash
+    if (this.isServerless) return;
+
+    try {
+      fs.writeFileSync(dbFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+    } catch (err) {
+      console.warn('Warning: Could not save db.json to disk:', err.message);
+    }
   }
 
   // Execute operations with an atomic transaction queue lock
@@ -63,7 +87,6 @@ class DatabaseService {
       this.save();
       return result;
     } catch (err) {
-      // Rollback on transaction failure
       console.error('Transaction failed! Rolling back changes...', err.message);
       this.load();
       throw err;
