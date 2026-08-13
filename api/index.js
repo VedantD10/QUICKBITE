@@ -13,16 +13,20 @@ app.use(express.json());
 let isSeeded = false;
 
 // Middleware to ensure database is seeded on Vercel cold starts before handling requests
-app.use(async (req, res, next) => {
+app.use((req, res, next) => {
   if (!isSeeded || db.getTable('restaurants').length === 0) {
-    try {
-      await seedData();
-      isSeeded = true;
-    } catch (err) {
-      console.error('Vercel cold start seed error:', err);
-    }
+    seedData()
+      .then(() => {
+        isSeeded = true;
+        next();
+      })
+      .catch((err) => {
+        console.error('Vercel cold start seed error:', err);
+        next();
+      });
+  } else {
+    next();
   }
-  next();
 });
 
 // Health check endpoint (Requirements 9 & 10)
