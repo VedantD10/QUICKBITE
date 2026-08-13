@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('qb_token');
@@ -51,9 +51,9 @@ export const api = {
   addMenuItem: (itemData) => request('/menu/items', { method: 'POST', body: JSON.stringify(itemData) }),
   updateMenuItem: (id, itemData) => request(`/menu/items/${id}`, { method: 'PATCH', body: JSON.stringify(itemData) }),
   deleteMenuItem: (id) => request(`/menu/items/${id}`, { method: 'DELETE' }),
-  getRestaurantOrders: () => request('/restaurant/orders'),
+  getRestaurantOrders: (params = '') => request(`/restaurant/orders${params}`),
   updateOrderStatus: (id, status, notes) => request(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, notes }) }),
-  getRestaurantAnalytics: () => request('/restaurant/analytics'),
+  getRestaurantAnalytics: (params = '') => request(`/restaurant/analytics${params}`),
 
   // Delivery Partner
   getDeliveryProfile: () => request('/delivery/profile'),
@@ -69,10 +69,10 @@ export const api = {
   getPendingRestaurants: () => request('/admin/restaurants/pending'),
   approveRestaurant: (id) => request(`/admin/restaurants/${id}/approve`, { method: 'PATCH' }),
   rejectRestaurant: (id, reason) => request(`/admin/restaurants/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
-  getUsers: (role = '', search = '') => request(`/admin/users?role=${role}&search=${search}`),
+  getUsers: (params = '') => request(`/admin/users${params}`),
   suspendUser: (id, reason) => request(`/admin/users/${id}/suspend`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
   getPlatformOrders: () => request('/admin/orders'),
   getComplaints: () => request('/admin/complaints'),
   resolveComplaint: (id, resolution) => request(`/admin/complaints/${id}/resolve`, { method: 'PATCH', body: JSON.stringify({ resolution }) }),
-  getPlatformAnalytics: () => request('/admin/analytics')
+  getAdminAnalytics: () => request('/admin/analytics')
 };

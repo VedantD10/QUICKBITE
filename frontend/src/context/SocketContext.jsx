@@ -5,6 +5,8 @@ import { Bell, X, CheckCircle, ShieldAlert } from 'lucide-react';
 
 const SocketContext = createContext();
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin);
+
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
   const [socket, setSocket] = useState(null);
@@ -29,34 +31,42 @@ export const SocketProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000', {
-      transports: ['websocket', 'polling']
-    });
+    let newSocket;
+    try {
+      newSocket = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'],
+        timeout: 5000
+      });
 
-    setSocket(newSocket);
+      setSocket(newSocket);
 
-    newSocket.on('connect', () => {
-      if (user) {
-        newSocket.emit('join:room', { room: `user_${user.id}` });
-        if (user.role === 'ADMIN') {
-          newSocket.emit('join:room', { room: 'admin_channel' });
+      newSocket.on('connect', () => {
+        if (user) {
+          newSocket.emit('join:room', { room: `user_${user.id}` });
+          if (user.role === 'ADMIN') {
+            newSocket.emit('join:room', { room: 'admin_channel' });
+          }
         }
-      }
-    });
+      });
 
-    newSocket.on('order:created', (data) => {
-      showToast(`🔔 New Order #${data.order_number || data.id} received!`, 'success');
-    });
+      newSocket.on('order:created', (data) => {
+        showToast(`🔔 New Order #${data.order_number || data.id} received!`, 'success');
+      });
 
-    newSocket.on('order:status_updated', (data) => {
-      showToast(`📦 Order #${data.orderNumber || data.orderId} is now ${data.status.replace(/_/g, ' ')}`, 'info');
-    });
+      newSocket.on('order:status_updated', (data) => {
+        showToast(`📦 Order #${data.orderNumber || data.orderId} is now ${data.status.replace(/_/g, ' ')}`, 'info');
+      });
 
-    newSocket.on('delivery:assigned', () => {
-      showToast(`🛵 New Delivery Trip Assignment available!`, 'success');
-    });
+      newSocket.on('delivery:assigned', () => {
+        showToast(`🛵 New Delivery Trip Assignment available!`, 'success');
+      });
+    } catch (err) {
+      console.warn('Socket.IO connection silent fallback:', err.message);
+    }
 
-    return () => newSocket.close();
+    return () => {
+      if (newSocket) newSocket.close();
+    };
   }, [user]);
 
   return (
